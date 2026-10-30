@@ -23,29 +23,26 @@ heartImg.src = 'heart.png';
 
 const pen = {
     x: canvas.width / 2 - 25,
-    y: canvas.height - 120,
-    width: 50,
-    height: 110,
+    y: canvas.height - 140,
+    width: 40,
+    height: 140,
     speed: 13,
     isThrown: false
 };
 
-let fruits = [];
+let fruit = {
+    x: canvas.width / 2 - 40,
+    y: 100,
+    width: 140,
+    height: 80,
+    speed: 4,
+    imgIndex: 0
+};
 
 function spawnFruits() {
-    fruits = [];
-    let spacing = canvas.width / 6;
-
-    for (let i = 0; i < 5; i++) {
-        fruits.push({
-            x: spacing * (i + 1) - 40,
-            y: 80 + (i % 2 * 35),
-            width: 75,
-            height: 75,
-            speed: (i % 2 === 0 ? 3.5 : -3.5),
-            imgIndex: i
-        });
-    }
+    fruit.x = Math.random() * (canvas.width - 200) + 100;
+    fruit.speed = (Math.random() > 0.5 ? 4 : -4);
+    fruit.imgIndex = Math.floor(Math.random() * fruitImages.length);
 }
 
 window.addEventListener("keydown", (e) => {
@@ -74,50 +71,37 @@ function resetGame() {
     lives = 3;
     gameState = "playing";
     pen.isThrown = false;
-    pen.y = canvas.height - 120;
+    pen.y = canvas.height - 140;
     spawnFruits();
 }
 
 function update() {
     if (gameState !== "playing") return;
 
-    fruits.forEach(f => {
-        f.x += f.speed;
-        if (f.x <= 20 || f.x + f.width >= canvas.width - 20) {
-            f.speed *= -1;
-        }
-    });
+    fruit.x += fruit.speed;
+    if (fruit.x <= 20 || fruit.x + fruit.width >= canvas.width - 20) {
+        fruit.speed *= -1;
+    }
 
     if (pen.isThrown) {
         pen.y -= pen.speed;
 
-        let hitIndex = -1;
-        for (let i = 0; i < fruits.length; i++) {
-            let f = fruits[i];
-            if (
-                pen.x < f.x + f.width &&
-                pen.x + pen.width > f.x &&
-                pen.y < f.y + f.height &&
-                pen.y + pen.height > f.y                
-            ) {
-                hitIndex = i;
-                break;
-            }
-        }
-
-        if (hitIndex !== -1) {
+        if (
+            pen.x < fruit.x + fruit.width &&
+            pen.x + pen.width > fruit.x &&
+            pen.y < fruit.y + fruit.height &&
+            pen.y + pen.height > fruit.y                
+        ) {
             score += 100;
             pen.isThrown = false;
-            pen.y = canvas.height - 120;
-            fruits[hitIndex].x = Math.random() * (canvas.width - 150) + 50;
-            fruits[hitIndex].speed = (Math.random() > 0.5 ? 4 : -4);
-            fruits[hitIndex].imgIndex = Math.floor(Math.random() * fruitImages.length);
+            pen.y = canvas.height - 140;
+            spawnFruits();
         }
 
         if (pen.y < -pen.height) {
             lives--;
             pen.isThrown = false;
-            pen.y = canvas.height - 120;
+            pen.y = canvas.height - 140;
 
             if (lives <= 0) {
                 gameState = "gameover";
@@ -137,14 +121,33 @@ function draw() {
     ctx.shadowBlur = 0;
 
     for (let i = 0; i < lives; i++) {
-        ctx.drawImage(heartImg, canvas.width - 180 + (i * 45), 30, 35, 35);
+        let heartX = canvas.width - 180 + (i * 45);
+        if (heartImg.complete && heartImg.naturalWidth !== 0) {
+            ctx.drawImage(heartImg, heartX, 30, 35, 35);
+        } else {
+            ctx.fillStyle = "#ef4444";
+            ctx.beginPath();
+            ctx.arc(heartX + 15, 45, 15, 0, Math.PI * 2);
+            ctx.fill();
+        }
     }
 
-    fruits.forEach(f => {
-        ctx.drawImage(fruitImages[f.imgIndex], f.x, f.y, f.width, f.height);
-    });
+    let img = fruitImages[fruit.imgIndex];
+    if (img && img.complete && img.naturalWidth !== 0) {
+        ctx.drawImage(img, fruit.x, fruit.y, fruit.width, fruit.height);
+    } else {
+        ctx.fillStyle = "#f97316";
+        ctx.beginPath();
+        ctx.arc(fruit.x + fruit.width / 2, fruit.y + fruit.height / 2, fruit.width / 2, 0, Math.PI * 2);
+        ctx.fill();
+    }
 
-    ctx.drawImage(penImg, pen.x, pen.y, pen.width, pen.height);
+    if (penImg.complete && penImg.naturalWidth !== 0) {
+        ctx.drawImage(penImg, pen.x, pen.y, pen.width, pen.height);
+    } else {
+        ctx.fillStyle = "#38bdf8";
+        ctx.fillRect(pen.x, pen.y, pen.width, pen.height);
+    }
 
     if (gameState === "gameover") {
         ctx.fillStyle = "rgba(15, 23, 42, 0.85)";
@@ -164,7 +167,6 @@ function draw() {
         ctx.textAlign = "left";
     }
 }
-
 
 spawnFruits();
 
