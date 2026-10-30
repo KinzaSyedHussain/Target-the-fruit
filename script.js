@@ -33,15 +33,20 @@ const pen = {
 let fruit = {
     x: canvas.width / 2 - 40,
     y: 100,
-    width: 140,
+    width: 100,
     height: 80,
+    baseSpeed: 2.5,
     speed: 4,
     imgIndex: 0
 };
 
 function spawnFruits() {
+    fruit.width = 80;
+    fruit.height = 80;
     fruit.x = Math.random() * (canvas.width - 200) + 100;
-    fruit.speed = (Math.random() > 0.5 ? 4 : -4);
+
+    let direction  = (Math.random() > 0.5 ? 1 : -1);
+    fruit.speed = fruit.baseSpeed * direction;
     fruit.imgIndex = Math.floor(Math.random() * fruitImages.length);
 }
 
@@ -69,6 +74,7 @@ function shootPen() {
 function resetGame() {
     score = 0;
     lives = 3;
+    fruit.baseSpeed = 2.5;
     gameState = "playing";
     pen.isThrown = false;
     pen.y = canvas.height - 140;
@@ -79,7 +85,11 @@ function update() {
     if (gameState !== "playing") return;
 
     fruit.x += fruit.speed;
-    if (fruit.x <= 20 || fruit.x + fruit.width >= canvas.width - 20) {
+    if (fruit.x <= 10) {
+        fruit.x = 10;
+        fruit.speed *= -1;
+    } else if ( fruit.x + fruit.width >= canvas.width - 10) {
+        fruit.x = canvas.width - 10 - fruit.width;
         fruit.speed *= -1;
     }
 
@@ -93,6 +103,9 @@ function update() {
             pen.y + pen.height > fruit.y                
         ) {
             score += 100;
+            if (fruit.baseSpeed < 10) {
+                fruit.baseSpeed += 0.6;
+            }
             pen.isThrown = false;
             pen.y = canvas.height - 140;
             spawnFruits();
@@ -150,7 +163,7 @@ function draw() {
     }
 
     if (gameState === "gameover") {
-        ctx.fillStyle = "rgba(15, 23, 42, 0.85)";
+        ctx.fillStyle = "rgba(95, 95, 95, 0.85)";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
         ctx.fillStyle = "#ffffff";
@@ -159,10 +172,10 @@ function draw() {
         ctx.fillText("GAME OVER", canvas.width / 2, canvas.height / 2 - 40);
 
         ctx.font = "24px sans-serif";
-        ctx.fillStyle = "#cbd5e1";
+        ctx.fillStyle = "#fa78e4";
         ctx.fillText(`Final Score: ${score}`, canvas.width / 2, canvas.height / 2 + 20);
         
-        ctx.fillStyle = "#38bdf8";
+        ctx.fillStyle = "#f5fa5f";
         ctx.fillText("Click or Press Space to Restart", canvas.width / 2, canvas.height / 2 + 80);
         ctx.textAlign = "left";
     }
