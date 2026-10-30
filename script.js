@@ -15,8 +15,19 @@ const fruitImages = fruitSources.map(src => {
     return img;
 });
 
-const penImg = new Image();
-penImg.src = 'pen.png';
+const pens = [
+    { id: 0, name: "Pen 1", scoreCost: 0, unlocked: true, src: "pen.png"},
+    { id: 0, name: "Pen 1", scoreCost: 1000, unlocked: true, src: "pen1.png"},
+    { id: 0, name: "Pen 2", scoreCost: 1700, unlocked: true, src: "pen2.png"},
+    { id: 0, name: "Pen 1", scoreCost: 2200, unlocked: true, src: "pen3.png"}
+];
+let currentPenIndex = 0;
+
+const penImg = pens.map(p => {
+    const img = new Image();
+    img.src = p.src;
+    return img;
+});
 
 const heartImg = new Image();
 heartImg.src = 'heart.png';
@@ -44,7 +55,6 @@ function spawnFruits() {
     fruit.width = 80;
     fruit.height = 80;
     fruit.x = Math.random() * (canvas.width - 200) + 100;
-
     let direction  = (Math.random() > 0.5 ? 1 : -1);
     fruit.speed = fruit.baseSpeed * direction;
     fruit.imgIndex = Math.floor(Math.random() * fruitImages.length);
@@ -53,19 +63,43 @@ function spawnFruits() {
 window.addEventListener("keydown", (e) => {
     if (e.code === "Space") {
         e.preventDefault();
-        shootPen();
+        if (gameState === "playing") shootPen();
+        else if (gameState === "gameover") resetGame();
     }
 });
 
-canvas.addEventListener("click", () => {
-    shootPen();
+canvas.addEventListener("click", (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+
+    if (gameState === "playing") {
+       
+        if (mouseX >= 220 && mouseX <= 330 && mouseY >= 30 && mouseY <= 70) {
+            gameState = "shop";
+            return;
+        }
+        shootPen();
+    } else if (gameState === "shop") {
+        if (mouseX >= canvas.width / 2 + 160 && mouseX <= canvas.width / 2 + 190 && mouseY >= canvas.height / 2 - 190 && mouseY <= canvas.height / 2 - 160) {
+            gameState = "playing";
+            return;
+        }
+        pens.forEach((p, index) => {
+            let itemY = canvas.height / 2 - 100 + (index * 80);
+            if (mouseX >= canvas.width / 2 - 180 && mouseX <= canvas.width / 2 + 180 && mouseY >= itemY && mouseY <= itemY + 65) {
+                if (p.unlocked || score >= p.scoreCost) {
+                    p.unlocked = true;
+                    currentPenIndex = index;
+                }
+            }
+        });
+    } else if (gameState === "gameover") {
+        resetGame();
+    }
 });
 
 function shootPen() {
-    if (gameState === "gameover") {
-        resetGame();
-        return;
-    }
     if (!pen.isThrown) {
         pen.isThrown = true;
     }
@@ -103,6 +137,13 @@ function update() {
             pen.y + pen.height > fruit.y                
         ) {
             score += 100;
+
+            pens.forEach(p => {
+                if (score >= p.scoreCost) {
+                    p.unlocked = true;
+                }
+            });
+
             if (fruit.baseSpeed < 10) {
                 fruit.baseSpeed += 0.6;
             }
@@ -131,6 +172,11 @@ function draw() {
     ctx.fillStyle = "#fff";
     ctx.font = "bold 28px sans-serif";
     ctx.fillText(`Score: ${score}`, 40, 60);
+    ctx.fillStyle =" #38bdf8";
+    ctx.fillRect(220, 30, 110, 40);
+    ctx.fillStyle = "#0f172a";
+    ctx.fillfont = "bold 18px sans-serif";
+    ctx.fillText("Shop", 240, 57);
     ctx.shadowBlur = 0;
 
     for (let i = 0; i < lives; i++) {
@@ -155,12 +201,64 @@ function draw() {
         ctx.fill();
     }
 
-    if (penImg.complete && penImg.naturalWidth !== 0) {
+    let activePenImg = penImages[currentPenIndex];
+    if (activePenImg && activePenImg.complete && activePenImg.naturalWidth !== 0) {
         ctx.drawImage(penImg, pen.x, pen.y, pen.width, pen.height);
     } else {
         ctx.fillStyle = "#38bdf8";
         ctx.fillRect(pen.x, pen.y, pen.width, pen.height);
     }
+
+    if (gameState === "shop") {
+        ctx.fillStyle = "rgba(15, 23, 42, 0.9)";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        let boxWidth = 420;
+        let boxHeight = 350;
+        let boxX = canvas.width / 2 - boxWidth / 2;
+        let boxY = canvas.height /2 - boxHeight / 2;
+
+        ctx.fillStyle = "#1e293b";
+        ctx.fillRect(boxX, boxY, boxWidth, boxHeight);
+        ctx.strokeStyle = "#38bdf8";
+        ctx.lineWidth = 3;
+        ctx.strokeRect(boxX, boxY, boxWidth, boxHeight);
+        ctx.fillStyle = "#fff";
+        ctx.font = "bold 28px sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText("PEN SHOP", canvas.width / 2, boxY + 45);
+        ctx.fillStyle = "#ef4444";
+        ctx.fillRect(boxX + boxWidth - 45, boxY + 15, 30, 30);
+        ctx.fillStyle = "#fff";
+        ctx.font = "bold 18px sans-serif";
+        ctx.fillText("X", boxX + boxWidth - 30, boxY + 36);
+
+        pens.forEach((p, index) => {
+            let itemY = boxY + 70 + (index * 80);
+            
+            ctx.fillStyle = (index === currentPenIndex) ? "#0284c7" : "#334155";
+            ctx.fillRect(boxX + 20, itemY, boxWidth - 40, 65);
+
+            ctx.fillStyle = "#ffffff";
+            ctx.font = "bold 18px sans-serif";
+            ctx.textAlign = "left";
+            ctx.fillText(p.name, boxX + 40, itemY + 38);
+
+            ctx.textAlign = "right";
+            if (index === currentPenIndex) {
+                ctx.fillStyle = "#38bdf8";
+                ctx.fillText("EQUIPPED", boxX + boxWidth - 40, itemY + 38);
+            } else if (p.unlocked || score >= p.scoreCost) {
+                ctx.fillStyle = "#4ade80";
+                ctx.fillText("SELECT", boxX + boxWidth - 40, itemY + 38);
+            } else {
+                ctx.fillStyle = "#facc15";
+                ctx.fillText(`🔒 Need ${p.scoreCost} Score`, boxX + boxWidth - 40, itemY + 38);
+            }
+        });
+        ctx.textAlign = "left";
+    }
+    
 
     if (gameState === "gameover") {
         ctx.fillStyle = "rgba(95, 95, 95, 0.85)";
